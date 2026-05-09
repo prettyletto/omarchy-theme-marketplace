@@ -11,10 +11,10 @@ https://learn.omacom.io/2/the-omarchy-manual/90/extra-themes.md
 
 ## Demo
 
-<video src="https://github.com/prettyletto/omarchy-theme-marketplace/releases/download/readme-demo/screenrecording-2026-05-09_12-25-10.960p.mp4" controls width="100%"></video>
+[![Omarchy Theme Marketplace demo](https://github.com/prettyletto/omarchy-theme-marketplace/releases/download/readme-demo/screenrecording-2026-05-09_12-25-10.gif)](https://github.com/prettyletto/omarchy-theme-marketplace/releases/download/readme-demo/screenrecording-2026-05-09_12-25-10.960p.mp4)
 
-The demo video is hosted as a GitHub Release asset so regular clones do not
-download it.
+The animated demo is hosted as a GitHub Release asset so regular clones do not
+download it. Click it to open the smaller MP4 version.
 
 ## What It Does
 
