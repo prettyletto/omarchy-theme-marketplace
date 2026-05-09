@@ -1,0 +1,61 @@
+#!/bin/bash
+
+# omarchy:summary=Browse installable Omarchy themes from the marketplace
+# omarchy:examples=omarchy theme marketplace
+
+set -euo pipefail
+
+CACHE_FILE="$HOME/.cache/omarchy/theme-marketplace/themes.tsv"
+PREVIEW_DIR="$HOME/.cache/omarchy/theme-marketplace/previews"
+READY_TIMEOUT_TENTHS="300"
+
+omarchy-theme-marketplace-refresh >/dev/null 2>&1 &
+refresh_pid=$!
+
+preview_count=0
+theme_count=0
+[[ -f $CACHE_FILE ]] && theme_count=$(wc -l <"$CACHE_FILE")
+[[ -d $PREVIEW_DIR ]] && preview_count=$(find "$PREVIEW_DIR" -maxdepth 1 -type f -name '*.jpg' -printf '.' 2>/dev/null | wc -c)
+
+if ((theme_count == 0 || preview_count < theme_count)); then
+  notify-send -u low "Fetching themes" "Preparing marketplace previews..."
+fi
+
+for _ in $(seq 1 "$READY_TIMEOUT_TENTHS"); do
+  if [[ -f $CACHE_FILE ]]; then
+    theme_count=$(wc -l <"$CACHE_FILE")
+    preview_count=$(find "$PREVIEW_DIR" -maxdepth 1 -type f -name '*.jpg' -printf '.' 2>/dev/null | wc -c)
+    if ((theme_count > 0 && preview_count >= theme_count)); then
+      break
+    fi
+  fi
+
+  if ! kill -0 "$refresh_pid" 2>/dev/null && ((preview_count == 0)); then
+    notify-send -u critical "Theme marketplace" "Could not fetch marketplace previews."
+    exit 1
+  fi
+
+  sleep 0.1
+done
+
+if ((theme_count > 0 && preview_count < theme_count)); then
+  notify-send -u normal "Theme marketplace" "Opening with $preview_count of $theme_count previews ready."
+fi
+
+if ! pgrep -x elephant >/dev/null; then
+  setsid uwsm-app -- elephant &
+fi
+
+if ! pgrep -f "walker --gapplication-service" >/dev/null; then
+  setsid uwsm-app -- env GSK_RENDERER=cairo walker --gapplication-service &
+fi
+
+for _ in {1..20}; do
+  if pgrep -f "walker --gapplication-service" >/dev/null; then
+    break
+  fi
+
+  sleep 0.1
+done
+
+exec walker --width 800 --minheight 400 --maxheight 400 -m menus:omarchyThemeMarketplace
