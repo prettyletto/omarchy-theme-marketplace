@@ -10,6 +10,9 @@ elephant_menu_dir="$HOME/.config/elephant/menus"
 require_command() {
   if ! command -v "$1" >/dev/null 2>&1; then
     echo "Error: required command not found: $1" >&2
+    if [[ $1 == "magick" ]]; then
+      echo "Install ImageMagick so the magick command is available, then run this installer again." >&2
+    fi
     exit 1
   fi
 }
