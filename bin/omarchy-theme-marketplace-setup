@@ -9,6 +9,8 @@ script_dir=$(cd "$(dirname "$script_path")" && pwd)
 repo_dir=$(cd "$script_dir/.." && pwd)
 omarchy_path="${OMARCHY_PATH:-$HOME/.local/share/omarchy}"
 elephant_menu_dir="$HOME/.config/elephant/menus"
+omarchy_extension_dir="$HOME/.config/omarchy/extensions"
+omarchy_menu_extension="$omarchy_extension_dir/menu.sh"
 changed="false"
 
 link_if_needed() {
@@ -18,6 +20,51 @@ link_if_needed() {
   if [[ $(readlink "$target" 2>/dev/null || true) != "$source" ]]; then
     ln -snf "$source" "$target"
     changed="true"
+  fi
+}
+
+install_menu_extension() {
+  local start_marker="# >>> omarchy-theme-marketplace"
+  local end_marker="# <<< omarchy-theme-marketplace"
+  local tmp_file
+
+  mkdir -p "$omarchy_extension_dir"
+  touch "$omarchy_menu_extension"
+
+  tmp_file=$(mktemp)
+  awk -v start="$start_marker" -v end="$end_marker" '
+    $0 == start { skip = 1; next }
+    $0 == end { skip = 0; next }
+    skip != 1 { print }
+  ' "$omarchy_menu_extension" >"$tmp_file"
+
+  cat >>"$tmp_file" <<'EOF'
+# >>> omarchy-theme-marketplace
+show_style_menu() {
+  case $(menu "Style" "󰸌  Theme\n󰣇  Theme Marketplace\n󰟵  Unlock\n  Font\n  Background\n  Hyprland\n󱄄  Screensaver\n  About") in
+  *"Theme Marketplace"*) show_theme_marketplace_menu ;;
+  *Theme*) show_theme_menu ;;
+  *Unlock*) omarchy-launch-walker -m menus:omarchyunlocks --width 800 --minheight 400 ;;
+  *Font*) show_font_menu ;;
+  *Background*) show_background_menu ;;
+  *Hyprland*) open_in_editor ~/.config/hypr/looknfeel.conf ;;
+  *Screensaver*) show_screensaver_menu ;;
+  *About*) show_about_menu ;;
+  *) show_main_menu ;;
+  esac
+}
+
+show_theme_marketplace_menu() {
+  omarchy-theme-marketplace
+}
+# <<< omarchy-theme-marketplace
+EOF
+
+  if ! cmp -s "$tmp_file" "$omarchy_menu_extension"; then
+    mv "$tmp_file" "$omarchy_menu_extension"
+    changed="true"
+  else
+    rm -f "$tmp_file"
   fi
 }
 
@@ -41,6 +88,7 @@ fi
 
 mkdir -p "$elephant_menu_dir"
 link_if_needed "$provider_source" "$elephant_menu_dir/omarchy_theme_marketplace.lua"
+install_menu_extension
 
 if [[ -d $omarchy_path/bin ]]; then
   link_if_needed "$bin_source_dir/omarchy-theme-marketplace" "$omarchy_path/bin/omarchy-theme-marketplace"
