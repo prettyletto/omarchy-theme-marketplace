@@ -1,9 +1,21 @@
 #!/bin/bash
 
 # omarchy:summary=Refresh cached Omarchy theme marketplace data
+# omarchy:group=theme
+# omarchy:name=marketplace refresh
 # omarchy:examples=omarchy theme marketplace refresh
 
 set -euo pipefail
+
+if ! command -v curl >/dev/null 2>&1; then
+  echo "curl is required to refresh the theme marketplace" >&2
+  exit 1
+fi
+
+if ! command -v magick >/dev/null 2>&1; then
+  echo "ImageMagick is required to prepare marketplace previews" >&2
+  exit 1
+fi
 
 SOURCE_URL="https://learn.omacom.io/2/the-omarchy-manual/90/extra-themes.md"
 CACHE_DIR="$HOME/.cache/omarchy/theme-marketplace"
@@ -17,6 +29,16 @@ PREVIEW_QUALITY="82"
 FIRST_PREVIEW_COUNT="10"
 FIRST_PREVIEW_JOBS="4"
 PREVIEW_JOBS="8"
+
+notify_marketplace_error() {
+  local message="$1"
+
+  if command -v notify-send >/dev/null 2>&1; then
+    notify-send -u critical "Theme marketplace" "$message" || true
+  fi
+
+  echo "Theme marketplace: $message" >&2
+}
 
 if [[ ${1:-} == "--preview-worker" ]]; then
   image_url="${2:-}"
@@ -32,8 +54,8 @@ if [[ ${1:-} == "--preview-worker" ]]; then
   }
   trap cleanup_preview_worker EXIT
 
-  curl --fail --silent --show-error --location --output "$tmp_image" "$image_url"
-  magick "$tmp_image" -auto-orient -resize "$PREVIEW_MAX_SIZE" -strip -quality "$PREVIEW_QUALITY" "$preview_path"
+  curl --fail --silent --show-error --location --output "$tmp_image" "$image_url" || exit 0
+  magick "$tmp_image" -auto-orient -resize "$PREVIEW_MAX_SIZE" -strip -quality "$PREVIEW_QUALITY" "$preview_path" || exit 0
   exit 0
 fi
 
@@ -89,7 +111,10 @@ queue_preview_jobs() {
   done <"$cache_file"
 }
 
-curl -fsSL "$SOURCE_URL" -o "$tmp_md"
+if ! curl -fsSL "$SOURCE_URL" -o "$tmp_md"; then
+  notify_marketplace_error "Could not fetch the marketplace source."
+  exit 1
+fi
 
 new_hash=$(sha256sum "$tmp_md" | cut -d' ' -f1)
 old_hash=$(cat "$SOURCE_HASH_FILE" 2>/dev/null || true)
@@ -116,15 +141,32 @@ while IFS= read -r line; do
     name="${BASH_REMATCH[1]}"
     repo_url="${BASH_REMATCH[2]}"
 
+    if [[ -z $name || -z $repo_url ]]; then
+      image_url=""
+      continue
+    fi
+
     repo_path="${repo_url%/}"
     theme_name=$(basename "$repo_path" .git | sed -E 's/^omarchy-//; s/-theme$//' | tr '[:upper:]' '[:lower:]')
-    preview_path="$PREVIEW_DIR/$theme_name.jpg"
 
+    if [[ -z $theme_name ]]; then
+      image_url=""
+      continue
+    fi
+
+    preview_path="$PREVIEW_DIR/$theme_name.jpg"
     printf '%s\t%s\t%s\t%s\t%s\n' "$theme_name" "$name" "$repo_url" "$image_url" "$preview_path" >>"$tmp_cache"
 
     image_url=""
   fi
 done <"$tmp_md"
+
+parsed_count=$(wc -l <"$tmp_cache")
+
+if ((parsed_count < 10)); then
+  notify_marketplace_error "Could not parse the marketplace source."
+  exit 1
+fi
 
 cp "$tmp_md" "$SOURCE_FILE"
 printf '%s\n' "$new_hash" >"$SOURCE_HASH_FILE"

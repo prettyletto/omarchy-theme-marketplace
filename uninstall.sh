@@ -9,6 +9,7 @@ elephant_menu_dir="$HOME/.config/elephant/menus"
 rm -f "$omarchy_bin_dir/omarchy-theme-marketplace"
 rm -f "$omarchy_bin_dir/omarchy-theme-marketplace-refresh"
 rm -f "$omarchy_bin_dir/omarchy-theme-marketplace-install"
+rm -f "$omarchy_bin_dir/omarchy-theme-marketplace-setup"
 rm -f "$elephant_menu_dir/omarchy_theme_marketplace.lua"
 
 if command -v omarchy-restart-walker >/dev/null 2>&1; then

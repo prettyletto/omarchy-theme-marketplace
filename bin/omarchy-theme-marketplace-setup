@@ -1,0 +1,54 @@
+#!/bin/bash
+
+# omarchy:summary=Register the theme marketplace with Omarchy
+
+set -euo pipefail
+
+script_path=$(readlink -f "${BASH_SOURCE[0]}")
+script_dir=$(cd "$(dirname "$script_path")" && pwd)
+repo_dir=$(cd "$script_dir/.." && pwd)
+omarchy_path="${OMARCHY_PATH:-$HOME/.local/share/omarchy}"
+elephant_menu_dir="$HOME/.config/elephant/menus"
+changed="false"
+
+link_if_needed() {
+  local source="$1"
+  local target="$2"
+
+  if [[ $(readlink "$target" 2>/dev/null || true) != "$source" ]]; then
+    ln -snf "$source" "$target"
+    changed="true"
+  fi
+}
+
+if [[ -f $repo_dir/default/elephant/omarchy_theme_marketplace.lua ]]; then
+  provider_source="$repo_dir/default/elephant/omarchy_theme_marketplace.lua"
+elif [[ -f /usr/share/omarchy-theme-marketplace/elephant/omarchy_theme_marketplace.lua ]]; then
+  provider_source="/usr/share/omarchy-theme-marketplace/elephant/omarchy_theme_marketplace.lua"
+else
+  echo "Could not find omarchy_theme_marketplace.lua" >&2
+  exit 1
+fi
+
+if [[ -x $repo_dir/bin/omarchy-theme-marketplace ]]; then
+  bin_source_dir="$repo_dir/bin"
+elif [[ -x /usr/bin/omarchy-theme-marketplace ]]; then
+  bin_source_dir="/usr/bin"
+else
+  echo "Could not find marketplace commands" >&2
+  exit 1
+fi
+
+mkdir -p "$elephant_menu_dir"
+link_if_needed "$provider_source" "$elephant_menu_dir/omarchy_theme_marketplace.lua"
+
+if [[ -d $omarchy_path/bin ]]; then
+  link_if_needed "$bin_source_dir/omarchy-theme-marketplace" "$omarchy_path/bin/omarchy-theme-marketplace"
+  link_if_needed "$bin_source_dir/omarchy-theme-marketplace-refresh" "$omarchy_path/bin/omarchy-theme-marketplace-refresh"
+  link_if_needed "$bin_source_dir/omarchy-theme-marketplace-install" "$omarchy_path/bin/omarchy-theme-marketplace-install"
+  link_if_needed "$bin_source_dir/omarchy-theme-marketplace-setup" "$omarchy_path/bin/omarchy-theme-marketplace-setup"
+fi
+
+if [[ $changed == "true" ]] && command -v omarchy-restart-walker >/dev/null 2>&1; then
+  omarchy-restart-walker || true
+fi

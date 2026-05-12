@@ -28,7 +28,26 @@ download it. Click it to open the smaller MP4 version.
 
 ## Install
 
-From this repository:
+From the AUR:
+
+```bash
+yay -S omarchy-theme-marketplace-git
+```
+
+Then run:
+
+```bash
+omarchy-theme-marketplace
+```
+
+The first launch registers the Elephant provider with Omarchy automatically.
+You can also run setup explicitly:
+
+```bash
+omarchy-theme-marketplace-setup
+```
+
+From a local clone:
 
 ```bash
 ./install.sh
@@ -64,7 +83,18 @@ previews.
 
 ## Files Installed
 
-The installer creates symlinks into the local Omarchy and Elephant locations:
+The AUR package installs:
+
+```text
+/usr/bin/omarchy-theme-marketplace
+/usr/bin/omarchy-theme-marketplace-refresh
+/usr/bin/omarchy-theme-marketplace-install
+/usr/bin/omarchy-theme-marketplace-setup
+/usr/share/omarchy-theme-marketplace/elephant/omarchy_theme_marketplace.lua
+```
+
+The setup command links the Elephant provider and Omarchy command routes for
+the current user:
 
 ```text
 ~/.local/share/omarchy/bin/omarchy-theme-marketplace
@@ -74,10 +104,10 @@ The installer creates symlinks into the local Omarchy and Elephant locations:
 ```
 
 If your Omarchy install is not in `~/.local/share/omarchy`, set `OMARCHY_PATH`
-before running the installer:
+before running setup:
 
 ```bash
-OMARCHY_PATH=/path/to/omarchy ./install.sh
+OMARCHY_PATH=/path/to/omarchy omarchy-theme-marketplace-setup
 ```
 
 ## Commands
@@ -90,7 +120,7 @@ Starts a background refresh, waits until preview thumbnails are ready when the
 cache is cold, then opens Walker:
 
 ```bash
-walker --width 800 --minheight 400 --maxheight 400 -m menus:omarchyThemeMarketplace
+omarchy-launch-walker -m menus:omarchyThemeMarketplace --width 800 --minheight 400 --maxheight 400
 ```
 
 ```bash
@@ -110,6 +140,13 @@ to run:
 ```bash
 omarchy-theme-install <git-repo-url>
 ```
+
+```bash
+omarchy-theme-marketplace-setup
+```
+
+Links the Elephant provider into `~/.config/elephant/menus`, links Omarchy route
+commands into `$OMARCHY_PATH/bin` when available, and restarts Walker.
 
 ## Cache
 

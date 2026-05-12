@@ -1,6 +1,8 @@
 #!/bin/bash
 
 # omarchy:summary=Browse installable Omarchy themes from the marketplace
+# omarchy:group=theme
+# omarchy:name=marketplace
 # omarchy:examples=omarchy theme marketplace
 
 set -euo pipefail
@@ -8,6 +10,20 @@ set -euo pipefail
 CACHE_FILE="$HOME/.cache/omarchy/theme-marketplace/themes.tsv"
 PREVIEW_DIR="$HOME/.cache/omarchy/theme-marketplace/previews"
 READY_TIMEOUT_TENTHS="300"
+
+notify_marketplace() {
+  local urgency="$1"
+  local title="$2"
+  local message="$3"
+
+  if command -v notify-send >/dev/null 2>&1; then
+    notify-send -u "$urgency" "$title" "$message" || true
+  fi
+}
+
+if command -v omarchy-theme-marketplace-setup >/dev/null 2>&1; then
+  omarchy-theme-marketplace-setup >/dev/null 2>&1 || true
+fi
 
 omarchy-theme-marketplace-refresh >/dev/null 2>&1 &
 refresh_pid=$!
@@ -18,7 +34,7 @@ theme_count=0
 [[ -d $PREVIEW_DIR ]] && preview_count=$(find "$PREVIEW_DIR" -maxdepth 1 -type f -name '*.jpg' -printf '.' 2>/dev/null | wc -c)
 
 if ((theme_count == 0 || preview_count < theme_count)); then
-  notify-send -u low "Fetching themes" "Preparing marketplace previews..."
+  notify_marketplace low "Fetching themes" "Preparing marketplace previews..."
 fi
 
 for _ in $(seq 1 "$READY_TIMEOUT_TENTHS"); do
@@ -30,8 +46,8 @@ for _ in $(seq 1 "$READY_TIMEOUT_TENTHS"); do
     fi
   fi
 
-  if ! kill -0 "$refresh_pid" 2>/dev/null && ((preview_count == 0)); then
-    notify-send -u critical "Theme marketplace" "Could not fetch marketplace previews."
+  if ! kill -0 "$refresh_pid" 2>/dev/null && ((theme_count == 0)); then
+    notify_marketplace critical "Theme marketplace" "Could not fetch marketplace themes."
     exit 1
   fi
 
@@ -39,23 +55,11 @@ for _ in $(seq 1 "$READY_TIMEOUT_TENTHS"); do
 done
 
 if ((theme_count > 0 && preview_count < theme_count)); then
-  notify-send -u normal "Theme marketplace" "Opening with $preview_count of $theme_count previews ready."
+  notify_marketplace normal "Theme marketplace" "Opening with $preview_count of $theme_count previews ready."
 fi
 
-if ! pgrep -x elephant >/dev/null; then
-  setsid uwsm-app -- elephant &
+if command -v omarchy-launch-walker >/dev/null 2>&1; then
+  exec omarchy-launch-walker -m menus:omarchyThemeMarketplace --width 800 --minheight 400 --maxheight 400
 fi
-
-if ! pgrep -f "walker --gapplication-service" >/dev/null; then
-  setsid uwsm-app -- env GSK_RENDERER=cairo walker --gapplication-service &
-fi
-
-for _ in {1..20}; do
-  if pgrep -f "walker --gapplication-service" >/dev/null; then
-    break
-  fi
-
-  sleep 0.1
-done
 
 exec walker --width 800 --minheight 400 --maxheight 400 -m menus:omarchyThemeMarketplace

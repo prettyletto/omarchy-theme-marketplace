@@ -34,11 +34,13 @@ mkdir -p "$omarchy_bin_dir" "$elephant_menu_dir"
 chmod +x \
   "$repo_dir/bin/omarchy-theme-marketplace" \
   "$repo_dir/bin/omarchy-theme-marketplace-refresh" \
-  "$repo_dir/bin/omarchy-theme-marketplace-install"
+  "$repo_dir/bin/omarchy-theme-marketplace-install" \
+  "$repo_dir/bin/omarchy-theme-marketplace-setup"
 
 ln -snf "$repo_dir/bin/omarchy-theme-marketplace" "$omarchy_bin_dir/omarchy-theme-marketplace"
 ln -snf "$repo_dir/bin/omarchy-theme-marketplace-refresh" "$omarchy_bin_dir/omarchy-theme-marketplace-refresh"
 ln -snf "$repo_dir/bin/omarchy-theme-marketplace-install" "$omarchy_bin_dir/omarchy-theme-marketplace-install"
+ln -snf "$repo_dir/bin/omarchy-theme-marketplace-setup" "$omarchy_bin_dir/omarchy-theme-marketplace-setup"
 ln -snf "$repo_dir/default/elephant/omarchy_theme_marketplace.lua" "$elephant_menu_dir/omarchy_theme_marketplace.lua"
 
 if command -v omarchy-restart-walker >/dev/null 2>&1; then
